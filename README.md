@@ -107,6 +107,34 @@ Turn  5 | health=0.793 | tokens=9,870
 
 ---
 
+## OpenAI / OpenRouter Support
+
+DriftWatch seamlessly supports the `openai` SDK (and drop-in alternatives like OpenRouter) using the exact same wrapper function. The engine automatically maps OpenAI's `chat.completions` API structure to evaluate drift.
+
+```python
+import os
+from openai import OpenAI
+import driftwatch
+
+# Wrap your OpenAI client
+client = driftwatch.wrap(
+    OpenAI(api_key=os.environ.get("OPENAI_API_KEY")),
+    goal="Help the user write a short sci-fi story about a rogue AI.",
+    threshold=0.60,
+    on_drift="checkpoint"  # Fallback to checkpoint (compaction is Anthropic-only)
+)
+
+# Use exactly like the real OpenAI client
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+> **Note:** Since OpenAI does not natively support server-side prompt compression, using `on_drift="compact"` will safely print a warning and automatically fall back to `"checkpoint"`.
+
+---
+
 ## How it works
 
 DriftWatch computes a composite **health score** (0.0–1.0) after every turn

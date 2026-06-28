@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+dw_venv/
+venv/
+.venv/
+env/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Tool caches
+.ruff_cache/
+.mypy_cache/
+
+# Environment / secrets
+.env
+.env.*
+
+# DriftWatch Checkpoints / Local Logs
+dw_checkpoints/
+
+# IDE / Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model cache (sentence-transformers downloads here)
+# These are large — don't commit them
+# ~/.cache/huggingface/  (outside repo, no action needed)

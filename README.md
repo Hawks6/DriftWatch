@@ -333,7 +333,7 @@ for event in client.drift_history:
 
 ## Roadmap
 
-- [ ] OpenAI SDK support
+- [x] OpenAI SDK support
 - [ ] LangGraph integration (`DriftWatchCallbackHandler`)
 - [ ] Multi-agent drift — coordination drift signal across agent network
 - [ ] GitHub Actions reporter (`driftwatch-action`)

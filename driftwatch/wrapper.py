@@ -78,8 +78,14 @@ class _MessagesProxy:
         """
         owner = self._owner
 
+        # Extract full history if provided (so real API doesn't complain)
+        dw_history = kwargs.pop("dw_history", None)
+
         # ── 1. Forward to real Anthropic client ──────────────────────────
         response = owner._real_client.messages.create(**kwargs)
+
+        if response is None:
+            return response
 
         # ── 2. Extract token count from response ─────────────────────────
         token_count = 0
@@ -87,8 +93,8 @@ class _MessagesProxy:
             token_count = getattr(response.usage, "input_tokens", 0)
 
         # ── 3. Build updated history for evaluation ───────────────────────
-        # The messages list the caller passed in
-        messages: list[dict] = kwargs.get("messages", [])
+        # The messages list the caller passed in, or the full history if provided
+        messages: list[dict] = dw_history if dw_history is not None else kwargs.get("messages", [])
 
         # Append the assistant's response for evaluation purposes
         # (we build a temporary view — we do NOT mutate the caller's list here)
@@ -143,8 +149,14 @@ class _ChatCompletionsProxy:
     def create(self, **kwargs: Any) -> Any:
         owner = self._owner
         
+        # Extract full history if provided (so real API doesn't complain)
+        dw_history = kwargs.pop("dw_history", None)
+
         # 1. Forward to real OpenAI client
         response = owner._real_client.chat.completions.create(**kwargs)
+
+        if response is None:
+            return response
 
         # 2. Extract token count
         token_count = 0
@@ -152,7 +164,7 @@ class _ChatCompletionsProxy:
             token_count = getattr(response.usage, "prompt_tokens", 0)
 
         # 3. Build updated history
-        messages: list[dict] = kwargs.get("messages", [])
+        messages: list[dict] = dw_history if dw_history is not None else kwargs.get("messages", [])
         assistant_content = []
         if hasattr(response, "choices") and len(response.choices) > 0:
             msg = response.choices[0].message

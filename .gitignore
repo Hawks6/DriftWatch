@@ -20,27 +20,22 @@ env/
 .coverage
 htmlcov/
 
-# Tool caches
-.ruff_cache/
-.mypy_cache/
-
 # Environment / secrets
 .env
 .env.*
 
-# DriftWatch Checkpoints / Local Logs
-dw_checkpoints/
-
-# IDE / Editors
+# IDE
 .vscode/
 .idea/
-*.swp
-*.swo
-*.sublime-*
 
 # OS
 .DS_Store
 Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.sublime-*
 
 # Model cache (sentence-transformers downloads here)
 # These are large — don't commit them

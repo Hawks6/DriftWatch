@@ -129,6 +129,68 @@ class _MessagesProxy:
 
 
 # ---------------------------------------------------------------------------
+# Internal chat proxy (OpenAI)
+# ---------------------------------------------------------------------------
+
+class _ChatCompletionsProxy:
+    """
+    Mimics the openai.resources.chat.completions API surface.
+    """
+
+    def __init__(self, owner: "DriftWatchClient") -> None:
+        self._owner = owner
+
+    def create(self, **kwargs: Any) -> Any:
+        owner = self._owner
+        
+        # 1. Forward to real OpenAI client
+        response = owner._real_client.chat.completions.create(**kwargs)
+
+        # 2. Extract token count
+        token_count = 0
+        if hasattr(response, "usage") and response.usage is not None:
+            token_count = getattr(response.usage, "prompt_tokens", 0)
+
+        # 3. Build updated history
+        messages: list[dict] = kwargs.get("messages", [])
+        assistant_content = []
+        if hasattr(response, "choices") and len(response.choices) > 0:
+            msg = response.choices[0].message
+            if getattr(msg, "content", None):
+                assistant_content.append({"type": "text", "text": msg.content})
+            if getattr(msg, "tool_calls", None):
+                # Map to Anthropic-style tool_use block so our Engine can analyze it identically
+                for tool in msg.tool_calls:
+                    assistant_content.append({
+                        "type": "tool_use",
+                        "name": tool.function.name,
+                        "input": tool.function.arguments,
+                    })
+
+        eval_history = list(messages) + [
+            {"role": "assistant", "content": assistant_content}
+        ]
+
+        # 4. Evaluate drift
+        event = owner._engine.evaluate(eval_history, token_count=token_count)
+        owner._log_event(event)
+
+        if owner._dashboard is not None:
+            owner._dashboard.update(event)
+
+        if event.health_score < owner._threshold:
+            owner._handle_drift(event, kwargs)
+
+        return response
+
+
+class _ChatProxy:
+    """Mimics the openai.resources.chat API surface."""
+    def __init__(self, owner: "DriftWatchClient") -> None:
+        self.completions = _ChatCompletionsProxy(owner)
+
+
+# ---------------------------------------------------------------------------
 # DriftWatchClient
 # ---------------------------------------------------------------------------
 
@@ -177,8 +239,15 @@ class DriftWatchClient:
             log_path = self._checkpoint_dir / "events.jsonl"
         self._log_path = Path(log_path)
 
-        # Messages proxy (the intercept point)
-        self.messages = _MessagesProxy(self)
+        # Dynamic Proxy Routing
+        if hasattr(self._real_client, "chat"):
+            # OpenAI / OpenRouter
+            self.chat = _ChatProxy(self)
+            self._is_openai = True
+        else:
+            # Anthropic
+            self.messages = _MessagesProxy(self)
+            self._is_openai = False
 
     # ------------------------------------------------------------------
     # Public passthrough attributes / methods
@@ -249,6 +318,16 @@ class DriftWatchClient:
 
         elif handler == "compact":
             messages: list[dict] = create_kwargs.get("messages", [])
+            
+            if getattr(self, "_is_openai", False):
+                self._alert(event, extra=" (compaction not supported for OpenAI, falling back to checkpoint)")
+                self._checkpoint_manager.save(
+                    messages=messages,
+                    drift_events=self._engine.history,
+                    metadata={"turn": event.turn, "health_score": event.health_score},
+                )
+                return
+
             model: str = create_kwargs.get("model", "claude-sonnet-4-6")
             try:
                 _, updated_messages = self._checkpoint_manager.save_with_compaction(

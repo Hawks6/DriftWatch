@@ -9,9 +9,7 @@ description = "Real-time memory health monitor and context rot detector for AI a
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [
-    { name = "DriftWatch Contributors" },
-]
+authors = [{ name = "Praveen", email = "gpraveen6828@gmail.com" }]
 keywords = [
     "anthropic",
     "claude",
@@ -58,9 +56,10 @@ dev = [
 driftwatch = "driftwatch.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/your-org/driftwatch"
-Repository = "https://github.com/your-org/driftwatch"
-"Bug Tracker" = "https://github.com/your-org/driftwatch/issues"
+Homepage = "https://github.com/hawks6/driftwatch"
+Repository = "https://github.com/hawks6/driftwatch"
+"Bug Tracker" = "https://github.com/hawks6/driftwatch/issues"
+Documentation = "https://github.com/hawks6/driftwatch#readme"
 
 [tool.hatch.build.targets.wheel]
 packages = ["driftwatch"]

@@ -99,7 +99,7 @@ class _MessagesProxy:
         # Append the assistant's response for evaluation purposes
         # (we build a temporary view — we do NOT mutate the caller's list here)
         assistant_content = []
-        if hasattr(response, "content"):
+        if getattr(response, "content", None):
             for block in response.content:
                 if hasattr(block, "model_dump"):
                     assistant_content.append(block.model_dump())
@@ -166,7 +166,7 @@ class _ChatCompletionsProxy:
         # 3. Build updated history
         messages: list[dict] = dw_history if dw_history is not None else kwargs.get("messages", [])
         assistant_content = []
-        if hasattr(response, "choices") and len(response.choices) > 0:
+        if getattr(response, "choices", None):
             msg = response.choices[0].message
             if getattr(msg, "content", None):
                 assistant_content.append({"type": "text", "text": msg.content})

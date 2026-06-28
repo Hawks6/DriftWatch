@@ -61,7 +61,8 @@ def _extract_assistant_texts(history: list[dict]) -> list[str]:
         if msg.get("role") != "assistant":
             continue
         content = msg.get("content", "")
-        if isinstance(content, str):
+        # Extract text blocks
+        if isinstance(content, str) and content.strip():
             texts.append(content)
         elif isinstance(content, list):
             for block in content:
@@ -69,12 +70,32 @@ def _extract_assistant_texts(history: list[dict]) -> list[str]:
                     texts.append(block.get("text", ""))
                 elif hasattr(block, "type") and block.type == "text":
                     texts.append(block.text)
+                    
+        # If there are tool calls (OpenAI format)
+        tool_calls = msg.get("tool_calls")
+        if isinstance(tool_calls, list):
+            for tc in tool_calls:
+                func = tc.get("function", {}) if isinstance(tc, dict) else getattr(tc, "function", None)
+                if func:
+                    name = func.get("name", "") if isinstance(func, dict) else getattr(func, "name", "")
+                    args = func.get("arguments", "") if isinstance(func, dict) else getattr(func, "arguments", "")
+                    texts.append(f"Tool: {name} {args}")
+        
+        # If there are tool uses (Anthropic format inside content)
+        if isinstance(content, list):
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "tool_use":
+                    texts.append(f"Tool: {block.get('name', '')} {block.get('input', '')}")
+                elif hasattr(block, "type") and block.type == "tool_use":
+                    texts.append(f"Tool: {getattr(block, 'name', '')} {getattr(block, 'input', '')}")
+                    
     return [t for t in texts if t.strip()]
 
 
 def _extract_tool_calls(msg: dict) -> list[str]:
     """Extract tool call names from a single message's content blocks."""
     names: list[str] = []
+    # 1. Anthropic format
     content = msg.get("content", [])
     if isinstance(content, list):
         for block in content:
@@ -82,6 +103,16 @@ def _extract_tool_calls(msg: dict) -> list[str]:
                 names.append(block.get("name", "unknown_tool"))
             elif hasattr(block, "type") and block.type == "tool_use":
                 names.append(getattr(block, "name", "unknown_tool"))
+                
+    # 2. OpenAI format
+    tool_calls = msg.get("tool_calls")
+    if isinstance(tool_calls, list):
+        for tc in tool_calls:
+            func = tc.get("function", {}) if isinstance(tc, dict) else getattr(tc, "function", None)
+            if func:
+                name = func.get("name", "unknown_tool") if isinstance(func, dict) else getattr(func, "name", "unknown_tool")
+                names.append(name)
+                
     return names
 
 

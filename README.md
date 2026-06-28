@@ -43,7 +43,7 @@ predictable, and preventable. DriftWatch does all three.
 ## Install
 
 ```bash
-pip install driftwatch
+pip install agent-driftwatch
 ```
 
 Or from source:
